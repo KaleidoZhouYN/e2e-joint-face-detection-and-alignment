@@ -25,13 +25,13 @@ def get_anchors(scale=64):
     for i in range(num_layers):
         fmsize = feature_map_sizes[i]
         for h,w in itertools.product(range(fmsize),repeat=2):
-            cx = (w + 0.5)/feature_map_sizes[i]
-            cy = (h + 0.5)/feature_map_sizes[i]
+            cx = float(w)/feature_map_sizes[i]
+            cy = float(h)/feature_map_sizes[i]
             
             s = sizes[i]
             for j,ar in enumerate(aspect_ratios[i]):
                 u_boxes.append((cx,cy,float(s)*ar,float(s)*ar))
-                boxes.append((w*16-32,h*16-32,w*16+48,h*16+48))       
+                boxes.append((w*16-32,h*16-32,w*16+32,h*16+32))       
     return torch.Tensor(u_boxes),torch.Tensor(boxes).long()
 
 def nms(bboxes,scores,threshold=0.35):
@@ -105,13 +105,13 @@ def detect(file,pic):
     img = np.pad(im,pad,'constant',constant_values=128)
     
     #get img_pyramid
-    img_scale,img_size = 0,int((img.shape[0]-1)/64)
+    img_scale,img_size = 0,int((img.shape[0]-1)/32)
     while img_size > 0:
         img_scale += 1
         img_size /= 2
-        if img_scale == 5:
+        if img_scale == 6:
             break
-    img_size = 64
+    img_size = 32
     img_pyramid = []
     t_boxes,t_probs,t_anchors,t_crops,t_which = None,None,None,None,None
     
@@ -153,7 +153,6 @@ def detect(file,pic):
     t_confs[:,0] = 0.5
     max_conf,labels = t_confs.max(1)
     if labels.long().sum().item() is 0:
-        print('no face detected')
         return None
     ids = labels.nonzero().squeeze(1)
     t_boxes,t_confs,t_anchors,t_crops,t_which = t_boxes[ids],t_confs[ids],t_anchors[ids],t_crops[ids],t_which[ids]
@@ -174,20 +173,20 @@ def detect(file,pic):
         o_x1,o_y1,o_x2,o_y2 = max(crop[0],0),max(crop[1],0),min(crop[2],w_),min(crop[3],h_)
         c_x1 = 0 if crop[0] >=0 else -crop[0]
         c_y1 = 0 if crop[1] >=0 else -crop[1]
-        c_x2 = 80 if crop[2] <= w_ else 80 - (crop[2] - w_)
-        c_y2 = 80 if crop[3] <= h_ else 80 - (crop[3] - h_)
-        crop_img = np.ones((3,80,80))*128
+        c_x2 = 64 if crop[2] <= w_ else 64 - (crop[2] - w_)
+        c_y2 = 64 if crop[3] <= h_ else 64 - (crop[3] - h_)
+        crop_img = np.ones((3,64,64))*128
         np.copyto(crop_img[:,c_y1:c_y2,c_x1:c_x2],img[:,o_y1:o_y2,o_x1:o_x2])
         crop_imgs.append(crop_img)
     crop_imgs = torch.from_numpy(np.array(crop_imgs)).float()
     if use_gpu:
         crop_imgs = crop_imgs.cuda()
-    t_ldmks = onet(crop_imgs).detach().cpu()[:,12,:].squeeze(1)
-    t_ldmks = decode_ldmk(t_ldmks,t_anchors).numpy()
+    t_ldmks = onet(crop_imgs).detach().cpu()[:,10,:].squeeze(1)
+    t_ldmks = decode_ldmk(t_ldmks,t_anchors)
     
     def change(boxes,ldmks,h,w,pad1):
-        index_x = np.array([0,2,4,6,8]).astype(int)
-        index_y = np.array([1,3,5,7,9]).astype(int)
+        index_x = torch.Tensor([0,2,4,6,8]).long()
+        index_y = torch.Tensor([1,3,5,7,9]).long()
         if h <= w:
             boxes[:,1] = boxes[:,1]*w-pad1
             boxes[:,3] = boxes[:,3]*w-pad1
@@ -204,7 +203,6 @@ def detect(file,pic):
             ldmks[:,index_y] = ldmks[:,index_y] * h 
         return boxes,ldmks
     t_boxes,t_ldmks = change(t_boxes,t_ldmks,h,w,pad1)
-    
     for i in xrange(len(t_boxes)):
         box,prob,ldmk = t_boxes[i],max_conf[i],t_ldmks[i]
         ldmk = ldmk.reshape(5,2)
@@ -226,8 +224,8 @@ def detect(file,pic):
         
 if __name__ == '__main__':
     pnet,onet = PNet(),ONet() 
-    pnet.load_state_dict(torch.load('weight/msos_pnet_1_135.pt')) 
-    onet.load_state_dict(torch.load('weight/msos_onet_1_135.pt'))
+    pnet.load_state_dict(torch.load('weight/msos_pnet_2_299.pt')) 
+    onet.load_state_dict(torch.load('weight/msos_onet_2_299.pt'))
     pnet.float()
     onet.float()
     pnet.eval()
@@ -250,7 +248,7 @@ if __name__ == '__main__':
     # print('avg',t_t/20)
     # given image path, predict and show
     root_path = "picture/"
-    picture = 'demo.jpg'
+    picture = '8.jpg'
     s_t = time.time()
     detect(root_path + picture,picture)
     e_t = time.time()

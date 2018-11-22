@@ -223,7 +223,7 @@ class ONet(nn.Module):
 if __name__ == '__main__':
     onet = ONet()    
     pnet = PNet(c=[16,24,32,48],resblock=[0,1,3,2])
-    data = torch.randn(1,3,1024,1024)
+    data = torch.randn(1,3,256,256)
     torch.set_num_threads(20)
     t_t = 0
     for i in xrange(20):
