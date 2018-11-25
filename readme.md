@@ -20,7 +20,7 @@ we add rotation augmentation and train a new model,these model run the same time
 
 demo:
 
-![pnet_rotate.pt](.picture/result_4_r2.jpg)
+![pnet_rotate.pt](/picture/result_4_r2.jpg)
 
 usage:
 
