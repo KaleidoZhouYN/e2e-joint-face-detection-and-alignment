@@ -216,7 +216,13 @@ def detect(file,pic):
         cv2.rectangle(im,(x1,y1+4),(x2,y2),(0,255,0),2)
         cv2.putText(im, str(int(prob*100)/100.0), (x1,y1), cv2.FONT_HERSHEY_COMPLEX, 0.6, (0,0,255))
         for k in range(ldmk.shape[0]):
-            cv2.circle(im, (ldmk[k,0],ldmk[k,1]) , 3, (0,255,0), -1)    
+            if k in [0,1]:
+                c = (0,0,255)
+            if k in [2]:
+                c = (255,0,0)
+            if k in [3,4]:
+                c = (0,255,0)
+            cv2.circle(im, (ldmk[k,0],ldmk[k,1]) , 3, c , -1)    
        
     cv2.imwrite('picture/result_{}'.format(pic), im) 
     e_t = time.time()
@@ -224,8 +230,10 @@ def detect(file,pic):
         
 if __name__ == '__main__':
     pnet,onet = PNet(),ONet() 
-    pnet.load_state_dict(torch.load('weight/msos_pnet_2_187.pt')) 
-    onet.load_state_dict(torch.load('weight/msos_onet_2_187.pt'))
+    pnet.load_state_dict(torch.load('weight/msos_pnet_rotate_115.pt',map_location=lambda storage, loc:storage), strict=False) 
+    onet.load_state_dict(torch.load('weight/msos_onet_rotate_115.pt',map_location=lambda storage, loc:storage), strict=False)
+    #pnet.load_state_dict(torch.load('weight/msos_pnet_2_299.pt')) 
+    #onet.load_state_dict(torch.load('weight/msos_onet_2_299.pt'))
     pnet.float()
     onet.float()
     pnet.eval()
@@ -236,7 +244,7 @@ if __name__ == '__main__':
         pnet.cuda()
         onet.cuda()
     else:
-        torch.set_num_threads(20)
+        torch.set_num_threads(1)
     # data = torch.randn(1,3,1024,1024)
     # t_t = 0
     # for i in xrange(20):
@@ -248,7 +256,7 @@ if __name__ == '__main__':
     # print('avg',t_t/20)
     # given image path, predict and show
     root_path = "picture/"
-    picture = '02.jpg'
+    picture = '8_r.jpg'
     s_t = time.time()
     detect(root_path + picture,picture)
     e_t = time.time()
