@@ -224,8 +224,8 @@ def detect(file,pic):
         
 if __name__ == '__main__':
     pnet,onet = PNet(),ONet() 
-    pnet.load_state_dict(torch.load('weight/msos_pnet_2_299.pt')) 
-    onet.load_state_dict(torch.load('weight/msos_onet_2_299.pt'))
+    pnet.load_state_dict(torch.load('weight/msos_pnet_2_187.pt')) 
+    onet.load_state_dict(torch.load('weight/msos_onet_2_187.pt'))
     pnet.float()
     onet.float()
     pnet.eval()
@@ -248,7 +248,7 @@ if __name__ == '__main__':
     # print('avg',t_t/20)
     # given image path, predict and show
     root_path = "picture/"
-    picture = '8.jpg'
+    picture = '02.jpg'
     s_t = time.time()
     detect(root_path + picture,picture)
     e_t = time.time()
